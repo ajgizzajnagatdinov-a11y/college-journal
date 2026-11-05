@@ -13,7 +13,8 @@
         input { background: #3d4250; color: white; }
         button { background: #2196f3; color: white; font-weight: bold; cursor: pointer; }
         .grade-item { background: #2d3341; padding: 10px; margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; }
-        .error { color: #ff5252; font-weight: bold; margin-top: 10px; }
+        .error-box { background: #3d1c1c; border: 1px solid #ff5252; padding: 10px; border-radius: 6px; margin-top: 15px; color: #ff5252; font-weight: bold; word-break: break-all; }
+        .success-box { background: #1c3d1c; border: 1px solid #4caf50; padding: 10px; border-radius: 6px; margin-top: 15px; color: #4caf50; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -28,76 +29,92 @@
 
         <h3>Последние оценки</h3>
         <div id="gradesList">Загрузка...</div>
-        <div id="errorMsg" class="error"></div>
+        
+        <!-- Сюда будут выводиться ошибки -->
+        <div id="statusMessage"></div>
     </div>
 
     <script>
-        // ⚠️ ВАЖНО: Вставьте сюда URL и ключ от НОВОГО проекта Supabase (журнала)
-       const SUPABASE_URL = 'https://shqmvjuxgcyjfakfpxnl.supabase.co'; 
-       const SUPABASE_KEY = 'sb_publishable_ваш_длинный_ключ';
+        // ⚠️ УБЕДИТЕСЬ, ЧТО ЗДЕСЬ НЕТ ЛИШНИХ ПРОБЕЛОВ!
+        const SUPABASE_URL = 'ВСТАВЬТЕ_ВАШ_URL'; 
+        const SUPABASE_KEY = 'ВСТАВЬТЕ_ВАШ_КЛЮЧ'; 
         
-        // Проверка, что ключи вставлены
-        if (SUPABASE_URL === 'СЮДА_ВСТАВЬТЕ_URL' || SUPABASE_KEY === 'СЮДА_ВСТАВЬТЕ_КЛЮЧ') {
-            document.getElementById('errorMsg').textContent = 'Ошибка: Вы не вставили URL или ключ в код!';
-            document.getElementById('gradesList').innerHTML = '';
+        const statusDiv = document.getElementById('statusMessage');
+        const listDiv = document.getElementById('gradesList');
+
+        if (SUPABASE_URL.includes('ВСТАВЬТЕ') || SUPABASE_KEY.includes('ВСТАВЬТЕ')) {
+            listDiv.innerHTML = '';
+            statusDiv.className = 'error-box';
+            statusDiv.innerHTML = 'Ошибка: Вы не вставили URL или ключ в код!';
         } else {
-            const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            try {
+                const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            async function addGrade() {
-                const studentName = document.getElementById('studentName').value;
-                const subject = document.getElementById('subject').value;
-                const gradeValue = parseInt(document.getElementById('gradeValue').value);
+                async function addGrade() {
+                    const studentName = document.getElementById('studentName').value.trim();
+                    const subject = document.getElementById('subject').value.trim();
+                    const gradeValue = parseInt(document.getElementById('gradeValue').value);
 
-                if (!studentName || !subject || !gradeValue) {
-                    alert('Заполните все поля!');
-                    return;
+                    if (!studentName || !subject || !gradeValue) {
+                        statusDiv.className = 'error-box';
+                        statusDiv.innerHTML = 'Заполните все поля!';
+                        return;
+                    }
+
+                    statusDiv.innerHTML = ''; // Очищаем старые сообщения
+
+                    const { data, error } = await supabase
+                        .from('grades')
+                        .insert([{ student_name: studentName, subject: subject, grade: gradeValue }]);
+
+                    if (error) {
+                        statusDiv.className = 'error-box';
+                        statusDiv.innerHTML = 'ОШИБКА БАЗЫ: ' + error.message;
+                    } else {
+                        statusDiv.className = 'success-box';
+                        statusDiv.innerHTML = 'Оценка успешно сохранена!';
+                        document.getElementById('studentName').value = '';
+                        document.getElementById('subject').value = '';
+                        document.getElementById('gradeValue').value = '';
+                        loadGrades(); 
+                    }
                 }
 
-                document.getElementById('errorMsg').textContent = ''; // Очищаем ошибки
+                async function loadGrades() {
+                    const { data, error } = await supabase
+                        .from('grades')
+                        .select('*')
+                        .order('id', { ascending: false })
+                        .limit(10);
 
-                const { data, error } = await supabase
-                    .from('grades')
-                    .insert([{ student_name: studentName, subject: subject, grade: gradeValue }]);
+                    if (error) {
+                        listDiv.innerHTML = '';
+                        statusDiv.className = 'error-box';
+                        statusDiv.innerHTML = 'ОШИБКА ЗАГРУЗКИ: ' + error.message;
+                        return;
+                    }
 
-                if (error) {
-                    document.getElementById('errorMsg').textContent = 'Ошибка базы: ' + error.message;
-                } else {
-                    alert('Оценка сохранена!');
-                    document.getElementById('studentName').value = '';
-                    document.getElementById('subject').value = '';
-                    document.getElementById('gradeValue').value = '';
-                    loadGrades(); 
+                    if (data.length === 0) {
+                        listDiv.innerHTML = 'Оценок пока нет.';
+                        return;
+                    }
+
+                    listDiv.innerHTML = data.map(g => `
+                        <div class="grade-item">
+                            <span>${g.student_name} (${g.subject})</span>
+                            <strong>${g.grade}</strong>
+                        </div>
+                    `).join('');
                 }
+
+                // Запускаем загрузку
+                loadGrades();
+
+            } catch (e) {
+                listDiv.innerHTML = '';
+                statusDiv.className = 'error-box';
+                statusDiv.innerHTML = 'КРИТИЧЕСКАЯ ОШИБКА КОДА: ' + e.message;
             }
-
-            async function loadGrades() {
-                const list = document.getElementById('gradesList');
-                const { data, error } = await supabase
-                    .from('grades')
-                    .select('*')
-                    .order('id', { ascending: false })
-                    .limit(10);
-
-                if (error) {
-                    list.innerHTML = '';
-                    document.getElementById('errorMsg').textContent = 'Ошибка загрузки: ' + error.message;
-                    return;
-                }
-
-                if (data.length === 0) {
-                    list.innerHTML = 'Оценок пока нет.';
-                    return;
-                }
-
-                list.innerHTML = data.map(g => `
-                    <div class="grade-item">
-                        <span>${g.student_name} (${g.subject})</span>
-                        <strong>${g.grade}</strong>
-                    </div>
-                `).join('');
-            }
-
-            loadGrades();
         }
     </script>
 </body>
