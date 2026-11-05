@@ -30,27 +30,28 @@
         <h3>Последние оценки</h3>
         <div id="gradesList">Загрузка...</div>
         
-        <!-- Сюда будут выводиться ошибки -->
         <div id="statusMessage"></div>
     </div>
 
     <script>
-        // ⚠️ УБЕДИТЕСЬ, ЧТО ЗДЕСЬ НЕТ ЛИШНИХ ПРОБЕЛОВ!
-       const SUPABASE_URL = 'https://shqmvjuxgcyjfakfpxnl.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Bx6GJhbEj4qPTfxce5U7mg_FwIFv...';
+        // ⚠️ ВСТАВЬТЕ СЮДА ВАШИ КЛЮЧИ ИЗ SUPABASE
+        const SUPABASE_URL = 'https://shqmvjuxgcyjfakfpxnl.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_Bx6GJhbEj4qPTfxce5U7mg_FwIFv...'; 
         
         const statusDiv = document.getElementById('statusMessage');
         const listDiv = document.getElementById('gradesList');
 
-        if (SUPABASE_URL.includes('ВСТАВЬТЕ') || SUPABASE_KEY.includes('ВСТАВЬТЕ')) {
+        // Проверка, что ключи вставлены
+        if (SUPABASE_URL === 'ВАШ_URL' || SUPABASE_KEY === 'ВАШ_КЛЮЧ') {
             listDiv.innerHTML = '';
             statusDiv.className = 'error-box';
             statusDiv.innerHTML = 'Ошибка: Вы не вставили URL или ключ в код!';
         } else {
             try {
-                const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                // Инициализируем базу данных (переменная называется db, чтобы не было конфликта)
+                const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                async function addGrade() {
+                window.addGrade = async function() {
                     const studentName = document.getElementById('studentName').value.trim();
                     const subject = document.getElementById('subject').value.trim();
                     const gradeValue = parseInt(document.getElementById('gradeValue').value);
@@ -61,9 +62,9 @@ const SUPABASE_KEY = 'sb_publishable_Bx6GJhbEj4qPTfxce5U7mg_FwIFv...';
                         return;
                     }
 
-                    statusDiv.innerHTML = ''; // Очищаем старые сообщения
+                    statusDiv.innerHTML = '';
 
-                    const { data, error } = await supabase
+                    const { data, error } = await db
                         .from('grades')
                         .insert([{ student_name: studentName, subject: subject, grade: gradeValue }]);
 
@@ -78,10 +79,10 @@ const SUPABASE_KEY = 'sb_publishable_Bx6GJhbEj4qPTfxce5U7mg_FwIFv...';
                         document.getElementById('gradeValue').value = '';
                         loadGrades(); 
                     }
-                }
+                };
 
                 async function loadGrades() {
-                    const { data, error } = await supabase
+                    const { data, error } = await db
                         .from('grades')
                         .select('*')
                         .order('id', { ascending: false })
@@ -107,7 +108,6 @@ const SUPABASE_KEY = 'sb_publishable_Bx6GJhbEj4qPTfxce5U7mg_FwIFv...';
                     `).join('');
                 }
 
-                // Запускаем загрузку
                 loadGrades();
 
             } catch (e) {
