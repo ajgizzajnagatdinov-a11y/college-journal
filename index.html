@@ -15,7 +15,6 @@
         .grade-item { background: #2d3341; padding: 10px; margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; }
         .error-box { background: #3d1c1c; border: 1px solid #ff5252; padding: 10px; border-radius: 6px; margin-top: 15px; color: #ff5252; font-weight: bold; word-break: break-all; }
         .success-box { background: #1c3d1c; border: 1px solid #4caf50; padding: 10px; border-radius: 6px; margin-top: 15px; color: #4caf50; font-weight: bold; }
-        .debug-box { background: #1c2a3d; border: 1px solid #2196f3; padding: 10px; border-radius: 6px; margin-top: 15px; color: #90caf9; font-family: monospace; font-size: 12px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -32,28 +31,20 @@
         <div id="gradesList">Загрузка...</div>
         
         <div id="statusMessage"></div>
-        
-        <!-- Блок для отладки -->
-        <div id="debugInfo" class="debug-box hidden" style="display:none;"></div>
     </div>
 
     <script>
-        // ⚠️ ВСТАВЬТЕ СЮДА ВАШИ КЛЮЧИ ИЗ SUPABASE
-        const SUPABASE_URL = 'https://misty-sun-9a4fjournal-proxy.ajgizzajnagatdinov.workers.dev'; 
+        // ⚠️ ВСТАВЬТЕ СЮДА ССЫЛКУ ИЗ CLOUDFLARE (без слеша на конце)
+        const SUPABASE_URL = 'https://misty-sun-9a4fjournal-proxy.ajgizzajnagatdinov.workers.dev/'; 
         const SUPABASE_KEY = 'sb_publishable_Bx6GJhbEj4qPtfxce5U7mg_FwIfV6S6'; 
         
         const statusDiv = document.getElementById('statusMessage');
         const listDiv = document.getElementById('gradesList');
-        const debugDiv = document.getElementById('debugInfo');
 
-        // Включаем отладку
-        debugDiv.style.display = 'block';
-        debugDiv.innerHTML = `URL: ${SUPABASE_URL.substring(0, 20)}... <br> Key: ${SUPABASE_KEY.substring(0, 20)}...`;
-
-        if (SUPABASE_URL === 'ВАШ_URL' || SUPABASE_KEY === 'ВАШ_КЛЮЧ') {
+        if (SUPABASE_URL.includes('ВАША_ССЫЛКА')) {
             listDiv.innerHTML = '';
             statusDiv.className = 'error-box';
-            statusDiv.innerHTML = 'Ошибка: Вы не вставили URL или ключ в код!';
+            statusDiv.innerHTML = 'Ошибка: Вы не вставили ссылку на Cloudflare в код!';
         } else {
             try {
                 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -70,14 +61,12 @@
                     }
 
                     statusDiv.innerHTML = '';
-                    debugDiv.innerHTML = 'Отправка данных...';
 
                     const { data, error } = await db
                         .from('grades')
                         .insert([{ student_name: studentName, subject: subject, grade: gradeValue }]);
 
                     if (error) {
-                        debugDiv.innerHTML = 'ОШИБКА БАЗЫ: ' + error.message;
                         statusDiv.className = 'error-box';
                         statusDiv.innerHTML = 'ОШИБКА: ' + error.message;
                     } else {
@@ -86,14 +75,11 @@
                         document.getElementById('studentName').value = '';
                         document.getElementById('subject').value = '';
                         document.getElementById('gradeValue').value = '';
-                        debugDiv.innerHTML = 'Данные сохранены. Обновляем список...';
                         loadGrades(); 
                     }
                 };
 
                 async function loadGrades() {
-                    debugDiv.innerHTML = 'Запрос данных из таблицы grades...';
-                    
                     const { data, error } = await db
                         .from('grades')
                         .select('*')
@@ -101,14 +87,11 @@
                         .limit(10);
 
                     if (error) {
-                        debugDiv.innerHTML = 'ОШИБКА ЗАГРУЗКИ: ' + error.message;
                         listDiv.innerHTML = '';
                         statusDiv.className = 'error-box';
                         statusDiv.innerHTML = 'ОШИБКА ЗАГРУЗКИ: ' + error.message;
                         return;
                     }
-
-                    debugDiv.innerHTML = 'Данные получены. Количество записей: ' + data.length;
 
                     if (data.length === 0) {
                         listDiv.innerHTML = 'Оценок пока нет.';
@@ -126,10 +109,9 @@
                 loadGrades();
 
             } catch (e) {
-                debugDiv.innerHTML = 'КРИТИЧЕСКАЯ ОШИБКА: ' + e.message;
                 listDiv.innerHTML = '';
                 statusDiv.className = 'error-box';
-                statusDiv.innerHTML = 'КРИТИЧЕСКАЯ ОШИБКА КОДА: ' + e.message;
+                statusDiv.innerHTML = 'КРИТИЧЕСКАЯ ОШИБКА: ' + e.message;
             }
         }
     </script>
